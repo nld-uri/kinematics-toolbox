@@ -271,17 +271,19 @@ matrix condition number is large and 1e-10 is what two different direct solvers
 
 ## Files
 
-    kinematics.py          the Python library (numpy + scipy only)
-    matlab/                the MATLAB port, base MATLAB only, plus a self-test
-    bench.py               benchmark harness (ground truth, noise, knob sweeps)
-    figs.py                figure code
-    benchmark_summary.csv  every number quoted above
-    diff_noise_sweep.csv   the noise-level table
+    python/kinematics.py      the Python library (numpy + scipy only)
+    python/bench.py           benchmark harness (ground truth, noise, knob sweeps)
+    python/figs.py            paper figures; figs_slides.py draws the talk figures
+    matlab/                   the MATLAB port, base MATLAB only, plus a self-test
+    data/benchmark_summary.csv  every number quoted above
+    data/diff_noise_sweep.csv   the noise-level table
+    figures/                  figures as vector PDF and PNG
+    talk/                     the talk, as PDF
 
 ### Python
 
 ```python
-import kinematics as kin
+import kinematics as kin      # run from python/, or add it to sys.path
 
 v = kin.diff_whittaker(x, dt, order=1, fc=70)      # velocity from position
 a = kin.diff_whittaker(x, dt, order=2, fc=70)      # acceleration from position
@@ -306,3 +308,10 @@ v  = kin_diff_whittaker(x, dt, 1, 70);
 d  = kin_int_tikhonov(acc, dt, 2, 2.0);
 r  = kin_smooth(t, struct('x',x,'a',acc,'nstate',4,'bias',true));
 ```
+
+---
+
+## License
+
+MIT License, copyright (c) 2026 David Chelidze, Nonlinear Dynamics Laboratory,
+University of Rhode Island ([web.uri.edu/nld](https://web.uri.edu/nld/)). See `LICENSE`.
