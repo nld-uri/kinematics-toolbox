@@ -1,0 +1,46 @@
+task,method,tuning,metric,value,note
+differentiate position,Spectral (FFT),oracle,velocity error % rms,0.5378,"fc/lam/alpha=69.76; 1% noise, seed 110"
+differentiate position,Spectral (FFT),oracle,acceleration error % rms,1.5165,"fc/lam/alpha=69.76; 1% noise, seed 110"
+differentiate position,Savitzky-Golay,oracle,velocity error % rms,0.8882,"fc/lam/alpha=150.4; 1% noise, seed 110"
+differentiate position,Savitzky-Golay,oracle,acceleration error % rms,5.0914,"fc/lam/alpha=278.2; 1% noise, seed 110"
+differentiate position,Whittaker (p=3),oracle,velocity error % rms,0.7591,"fc/lam/alpha=81.35; 1% noise, seed 110"
+differentiate position,Whittaker (p=3),oracle,acceleration error % rms,2.4861,"fc/lam/alpha=69.76; 1% noise, seed 110"
+differentiate position,Smoothing spline,oracle,velocity error % rms,0.9083,"fc/lam/alpha=3.162e-08; 1% noise, seed 110"
+differentiate position,Smoothing spline,oracle,acceleration error % rms,3.6481,"fc/lam/alpha=3.162e-08; 1% noise, seed 110"
+differentiate position,TV-regularised,oracle,velocity error % rms,5.0711,"alpha=1e-05; ADMM; 1% noise, seed 110"
+differentiate position,TV-regularised,oracle,acceleration error % rms,14.8633,"alpha=0.0001; ADMM; 1% noise, seed 110"
+differentiate position,Levant (sliding mode),oracle,velocity error % rms,7.1615,"fc/lam/alpha=2154; 1% noise, seed 110"
+differentiate position,Levant (sliding mode),oracle,acceleration error % rms,19.7801,"fc/lam/alpha=1000; 1% noise, seed 110"
+differentiate position,Gaussian process,oracle,velocity error % rms,1.2271,"fc/lam/alpha=0.0065; 1% noise, seed 110"
+differentiate position,Gaussian process,oracle,acceleration error % rms,6.0483,"fc/lam/alpha=0.0065; 1% noise, seed 110"
+differentiate position,State-space smoother (n=4),self (marginal likelihood),velocity error % rms,0.8271,"1% noise, seed 110"
+differentiate position,State-space smoother (n=4),self (marginal likelihood),acceleration error % rms,3.3282,"1% noise, seed 110"
+differentiate position,State-space smoother (n=5),self (marginal likelihood),velocity error % rms,0.9679,"1% noise, seed 110"
+differentiate position,State-space smoother (n=5),self (marginal likelihood),acceleration error % rms,2.4407,"1% noise, seed 110"
+differentiate position,Spectral (FFT),oracle,"velocity error % rms, FULL record",8.352,"edge effect; 1% noise, seed 110"
+differentiate position,Whittaker (p=3),oracle,"velocity error % rms, FULL record",0.8519,"edge effect; 1% noise, seed 110"
+differentiate position,Savitzky-Golay,oracle,"velocity error % rms, FULL record",0.9447,"edge effect; 1% noise, seed 110"
+differentiate position,State-space n=4,self,"velocity error % rms, FULL record",0.8267,"edge effect; 1% noise, seed 110"
+differentiate position (impacting),Spectral fc=350,oracle,velocity error % rms near impacts,24.0724,"+/-4 ms windows; 0.5% noise, seed 3"
+differentiate position (impacting),Whittaker fc=350,oracle,velocity error % rms near impacts,22.3015,"+/-4 ms windows; 0.5% noise, seed 3"
+differentiate position (impacting),TV alpha=1e-05,oracle,velocity error % rms near impacts,19.1638,"+/-4 ms windows; ADMM; 0.5% noise, seed 3"
+differentiate position (impacting),kinsmooth n=4,oracle,velocity error % rms near impacts,26.6878,"+/-4 ms windows; 0.5% noise, seed 3"
+integrate acceleration,Naive cumulative trapezoid,none,velocity error % rms,60.1861,seed 7
+integrate acceleration,Naive cumulative trapezoid,none,displacement error % rms,4105.3197,seed 7
+integrate acceleration,Spectral (FFT),oracle,velocity error % rms,0.2514,fc=9.22 Hz; seed 7
+integrate acceleration,Spectral (FFT),oracle,displacement error % rms,0.5032,fc=9.22 Hz; seed 7
+integrate acceleration,Trapz + detrend + HP,oracle,velocity error % rms,1.7893,fc=9.22 Hz; seed 7
+integrate acceleration,Trapz + detrend + HP,oracle,displacement error % rms,2.8395,fc=9.22 Hz; seed 7
+integrate acceleration,Tikhonov,oracle,velocity error % rms,2.0406,fc=1.9 Hz; seed 7
+integrate acceleration,Tikhonov,oracle,displacement error % rms,0.9055,fc=4.18 Hz; seed 7
+integrate acceleration,"State-space smoother (n=4, bias)","self q, hp=4 Hz",velocity error % rms,1.6038,seed 7
+integrate acceleration,"State-space smoother (n=4, bias)","self q, hp=4 Hz",displacement error % rms,1.7213,seed 7
+fusion,"State-space smoother, displacement only",self,displacement error % rms,2.2118,seeds 7/11
+fusion,"State-space smoother, displacement only",self,velocity error % rms,3.8637,seeds 7/11
+fusion,"State-space smoother, displacement only",self,acceleration error % rms,9.981,seeds 7/11
+fusion,"State-space smoother, acceleration only",self,displacement error % rms,1.7213,seeds 7/11
+fusion,"State-space smoother, acceleration only",self,velocity error % rms,1.6038,seeds 7/11
+fusion,"State-space smoother, acceleration only",self,acceleration error % rms,1.8292,seeds 7/11
+fusion,"State-space smoother, fused",self,displacement error % rms,1.2854,seeds 7/11
+fusion,"State-space smoother, fused",self,velocity error % rms,1.1465,seeds 7/11
+fusion,"State-space smoother, fused",self,acceleration error % rms,1.6683,seeds 7/11
