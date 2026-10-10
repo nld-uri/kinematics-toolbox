@@ -20,8 +20,9 @@ plt.rcParams.update({"axes.spines.top": False, "axes.spines.right": False})
 OUT = os.path.join(HERE, "..", "figures")
 SL = (12.6, 5.6)
 
-C = dict(truth="#EDB120", spec="#D95319", whit="#0072BD", ks="#000000",
-         ksbar="#A2142F", delay="#055432", sod="#67355C", lev="#808080")
+# NLD figure palette, bound to method as in figs_slides.py
+C = dict(truth="#8A8578", spec="#B4622A", whit="#1F5A85", ks="#132433",
+         ksbar="#8FA3B0", delay="#774860", sod="#CA863E", lev="#CA863E", noise="#8A8578")
 
 
 def _fin(fig, name):
@@ -56,15 +57,15 @@ def fig_method():
     ax = axs[0]
     sv = info["sv"]; r = info["r"]; keep = info["keep"]
     k = np.arange(1, 81)
-    ax.semilogy(k, sv[:80], "o", ms=4, color=C["lev"], label="noise directions")
+    ax.semilogy(k, sv[:80], "o", ms=4, color=C["noise"], label="noise directions")
     kk = np.arange(1, r + 1)
     ax.semilogy(kk[keep], sv[:r][keep], "o", ms=6, color=C["delay"], label="kept: signal subspace")
     if (~keep).any():
-        ax.semilogy(kk[~keep], sv[:r][~keep], "x", ms=8, mew=2, color=C["spec"],
+        ax.semilogy(kk[~keep], sv[:r][~keep], "x", ms=8, mew=2, color=C["ks"],
                     label="above threshold, outside signal band")
     p = info["L"]; K = len(xn) - p + 1; beta = min(K, p) / max(K, p)
     thr = (0.56 * beta ** 3 - 0.95 * beta ** 2 + 1.82 * beta + 1.43) * np.median(sv)
-    ax.axhline(thr, color="k", lw=1.4, ls="--")
+    ax.axhline(thr, color=C["truth"], lw=1.4, ls="--")
     ax.text(80, thr * 1.25, "Gavish--Donoho threshold", ha="right", fontsize=13)
     ax.set_xlabel("component index"); ax.set_ylabel("singular value")
     ax.set_title(f"Delay window L = {info['L']}: {keep.sum()} of 2000 directions kept")
@@ -73,7 +74,7 @@ def fig_method():
     sl = slice(300, 1300)
     ax.plot(t[sl], aw[sl] - A[sl], color=C["whit"], lw=1.2, label=f"Whittaker, oracle cutoff ({pe(aw, A):.2f}%)")
     ax.plot(t[sl], a[sl] - A[sl], color=C["delay"], lw=1.6, label=f"delay SVD, self-tuned ({pe(a, A):.2f}%)")
-    ax.axhline(0, color="k", lw=0.8)
+    ax.axhline(0, color=C["truth"], lw=0.8)
     ax.set_ylim(-0.7, 0.7)
     ax.set_xlabel("time (s)"); ax.set_ylabel("acceleration error (m/s$^2$)")
     ax.set_title("Acceleration error, 1% noisy position")
@@ -163,8 +164,8 @@ def fig_causal():
     fig, axs = plt.subplots(1, 2, figsize=SL, gridspec_kw={"width_ratios": [1.6, 1]})
     ax = axs[0]
     sl = slice(1000, 1300)
-    ax.plot(t[sl], vl[sl], color=C["lev"], lw=1.4, label=f"Levant, best L ({pe(vl, V):.1f}%)")
-    ax.plot(t[sl], rc["v"][sl], color=C["ks"], lw=2.0, label=f"Kalman filter, self-tuned ({pe(rc['v'], V):.1f}%)")
+    ax.plot(t[sl], vl[sl], color=C["lev"], lw=1.4, label=f"Levant ({pe(vl, V):.1f}%)")
+    ax.plot(t[sl], rc["v"][sl], color=C["ks"], lw=2.0, label=f"Kalman filter ({pe(rc['v'], V):.1f}%)")
     ax.plot(t[sl], V[sl], color=C["truth"], lw=2.6, ls="--", label="true velocity")
     ax.set_xlabel("time (s)"); ax.set_ylabel("velocity (m/s)")
     ax.set_title("Online: only past samples are used")

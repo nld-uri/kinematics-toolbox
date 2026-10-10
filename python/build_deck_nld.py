@@ -4,8 +4,9 @@ defaults, full MATLAB port).
 
     python build_deck_nld.py OLD.pptx NLD-template.potx FIGDIR ICON.png OUT.pptx
 
-The old deck (talk/differentiation_integration_talk.pptx) is the source of
-truth for the 26 original slides: titles, bullets, tables, figures and speaker
+OLD.pptx is the 26-slide deck before the rebrand
+(git show 08cfe8b:talk/differentiation_integration_talk.pptx > old.pptx); it is the
+source of truth for the 26 original slides' text and notes: titles, bullets, tables, figures and speaker
 notes are read from it, so hand edits made there survive.  Content changes and
 new slides are written below in EDITS / NEW.
 """
@@ -334,8 +335,20 @@ def b_closing(prs, notes=""):
 
 
 # ------------------------------------------------------------ content edits
-def edit(old):
+FIGS = {4: "s_illposed", 5: "s_naive", 8: "s_edges", 11: "s_tuning", 14: "s_impact",
+        17: "s_selftune", 18: "s_uncertainty", 20: "s_integration", 21: "s_fusion"}
+
+
+def edit(old, figdir):
     o = {i + 1: d for i, d in enumerate(old)}
+    # figures regenerated in the NLD palette (make_slide_figs.py) replace the
+    # embedded ones when present
+    for i, name in FIGS.items():
+        f = os.path.join(figdir, name + ".png")
+        if os.path.exists(f):
+            o[i]["img"] = open(f, "rb").read()
+    # impact numbers now come from the reproducible generator in bench_delay.py
+    o[13]["pros"] = [p.replace("19.2% vs 22\u201327%", "16.9% vs 21\u201325%") for p in o[13]["pros"]]
     o[1]["title"] = "Differentiating and integrating measured motion"
     o[1]["sub"] = ("Model-free kinematics from one sensor or two\n"
                    "Nonlinear Dynamics Laboratory  ·  University of Rhode Island")
@@ -514,7 +527,7 @@ def new_content(figdir):
 # ------------------------------------------------------------ assemble
 def build(old_path, potx, figdir, icon, out):
     old = read_old(old_path)
-    o = edit(old)
+    o = edit(old, figdir)
     N = new_content(figdir)
     prs = open_template(potx)
     P, M, D, I, R = "The problem", "Differentiation", "Delay reconstruction", "Integration", "In practice"

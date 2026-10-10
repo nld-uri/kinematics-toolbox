@@ -111,20 +111,26 @@ high-amplitude information is at the *start* of the record, this matters.
 
 ### When the derivative is genuinely discontinuous
 
-Vibro-impact oscillator, 10 impacts with restitution 0.85. Velocity error
-within ±4 ms of an impact:
+Vibro-impact oscillator (`bench_delay.vibroimpact`: 15 Hz, stop at 0.6 of the
+initial amplitude, restitution 0.85, 5 impacts in 1.5 s, 0.5 % noise, seed 3).
+Velocity error within ±4 ms of an impact; TV at alpha = 1e-5, Whittaker and
+spectral at fc = 350 Hz, state-space self-tuned:
 
 | method | error |
 |---|---|
-| **Total variation** | **19.2 %** |
-| Whittaker | 22.3 % |
-| Spectral | 24.1 % |
-| State-space | 26.7 % |
+| **Total variation** | **16.9 %** |
+| Whittaker | 21.2 % |
+| Spectral | 22.8 % |
+| State-space | 24.6 % |
 
-TV is the only one that tracks the jump most closely (Fig. 1d) — a 14 % reduction
-in local error against the best quadratic-penalty method. If you are measuring
+TV tracks the jump most closely (`figures/s_impact`) — a 20 % reduction in
+local error against the best quadratic-penalty method. If you are measuring
 impact velocities or restitution coefficients, that difference is the
 measurement.
+
+The earlier version of this table (19.2 / 22.3 / 24.1 / 26.7 %, 10 impacts) came
+from a generator that is not in the repository; it was replaced in October 2026
+by the reproducible one above. The ranking is unchanged.
 
 ### Integrating acceleration (1 % white + 0.5 % drift + 0.5 % offset)
 
@@ -370,6 +376,8 @@ matrix condition number is large and 1e-10 is what two different direct solvers
     bench_delay.py         benchmark of the October 2026 additions
     figs.py                figure code
     figs_delay.py          figures for the delay and causal slides
+    figs_slides.py         slide figure functions (NLD palette)
+    make_slide_figs.py     rebuilds the nine original slide figures from bench.py
     build_deck_nld.py      rebuilds the talk in the NLD template from the previous deck
     benchmark_summary.csv  every number quoted above the delay section
     delay_benchmark.csv    every number in the delay section

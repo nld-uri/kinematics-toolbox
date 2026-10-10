@@ -2,8 +2,15 @@
 import numpy as np, matplotlib as mpl, matplotlib.pyplot as plt
 from scipy import signal as _sg
 
-C = dict(truth="#EDB120", spec="#D95319", sg="#808080", whit="#0072BD",
-         tv="#77AC30", ks="#000000", tik="#0072BD", bad="#BFBFBF", acc="#7E2F8E")
+# NLD brand figure palette (fig-1..fig-5 in order: blue, copper, green, ochre,
+# plum; fig-ref dashed for reference curves).  Colour is bound to the method
+# and reused on every slide.  The true signal is the reference: dashed fig-ref.
+# The state-space smoother keeps the ink colour for lines and slate for bars,
+# so no bar is near-black.
+C = dict(truth="#8A8578", spec="#B4622A", sg="#CA863E", whit="#1F5A85",
+         tv="#588A75", ks="#132433", ksbar="#8FA3B0", tik="#1F5A85",
+         bad="#B9B4A8", acc="#774860")
+TRUTH = dict(color=C["truth"], ls="--")   # every true-signal curve
 SL = (12.6, 5.6)      # full-width slide figure
 HL = (6.15, 4.9)      # half-width
 
@@ -22,16 +29,16 @@ def f_illposed(t, dt, X, xn, A, out="s_illposed.png"):
         ax.loglog(f, w**n, color=C["spec"], ls=ls, lw=2.6, label=lab)
     for n, ls, lab in [(1,"-","one integral  $\\times 1/\\omega$"), (2,"--","two integrals  $\\times 1/\\omega^2$")]:
         ax.loglog(f, w**-float(n), color=C["whit"], ls=ls, lw=2.6, label=lab)
-    ax.axhline(1, color="k", lw=1.0, alpha=0.5)
+    ax.axhline(1, color=C["truth"], lw=1.0)
     ax.set_xlabel("frequency (Hz)"); ax.set_ylabel("noise gain")
     ax.set_title("Noise gain is unbounded at both ends")
     ax.legend(frameon=False, fontsize=13, loc="lower left"); ax.set_ylim(1e-6, 1e8)
     ax = axs[1]
     fr, Pt = _sg.welch(A, fs=1/dt, nperseg=2048)
     fr, Pn = _sg.welch(np.gradient(np.gradient(xn, dt), dt), fs=1/dt, nperseg=2048)
-    ax.loglog(fr[1:], Pt[1:], color=C["truth"], lw=3.4, label="true acceleration")
+    ax.loglog(fr[1:], Pt[1:], **TRUTH, lw=2.8, label="true acceleration")
     ax.loglog(fr[1:], Pn[1:], color=C["spec"], lw=1.7, label="2nd finite difference of a 1% noisy position")
-    ax.axvline(30, color="k", lw=1.2, ls=":")
+    ax.axvline(30, color=C["ks"], lw=1.2, ls=":")
     ax.set_ylim(1e-14, 1e4)
     ax.set_xlabel("frequency (Hz)"); ax.set_ylabel("acceleration PSD")
     ax.set_title("Above ~30 Hz the estimate is pure amplified noise")
@@ -43,13 +50,13 @@ def f_naive(t, dt, X, V, xn, an, A, x_naive, out="s_naive.png"):
     ax = axs[0]
     anv = np.gradient(np.gradient(xn, dt), dt)
     ax.plot(t, anv, color=C["spec"], lw=0.6, label="2nd finite difference of the measurement")
-    ax.plot(t, A, color=C["truth"], lw=3.2, label="true acceleration")
+    ax.plot(t, A, **TRUTH, lw=2.6, label="true acceleration")
     ax.set_xlim(0.4, 0.7); ax.set_xlabel("time (s)"); ax.set_ylabel("acceleration (m/s$^2$)")
     ax.set_title("Differentiate twice, naively: %.0f%% rms error" % (100*np.sqrt(np.mean((anv-A)**2))/np.sqrt(np.mean(A**2))))
     ax.legend(frameon=False, fontsize=12, loc="upper right")
     ax = axs[1]
     ax.plot(t, x_naive*1e3, color=C["bad"], lw=2.0, label="cumulative trapezoid of the measurement")
-    ax.plot(t, X*1e3, color=C["truth"], lw=3.0, label="true displacement")
+    ax.plot(t, X*1e3, **TRUTH, lw=2.6, label="true displacement")
     ax.set_xlabel("time (s)"); ax.set_ylabel("displacement (mm)")
     ax.set_title("Integrate twice, naively: drifts $%.0f\\times$ off scale" % (np.abs(x_naive).max()/np.abs(X).max()))
     ax.legend(frameon=False, fontsize=12, loc="upper left")
@@ -75,7 +82,7 @@ def f_tuning(can, ks_v, ks_a, out="s_tuning.png"):
 def f_edges(t, V, xn, dt, kf, ks_v, out="s_edges.png"):
     fig, ax = plt.subplots(figsize=SL)
     sl = slice(len(t)-380, len(t))
-    ax.plot(t[sl], V[sl], color=C["truth"], lw=3.4, label="true velocity")
+    ax.plot(t[sl], V[sl], **TRUTH, lw=2.8, label="true velocity")
     ax.plot(t[sl], kf["spec"][sl], color=C["spec"], lw=2.0, label="spectral (FFT)")
     ax.plot(t[sl], kf["whit"][sl], color=C["whit"], lw=2.0, label="Whittaker")
     ax.plot(t[sl], ks_v[sl], color=C["ks"], lw=1.8, ls="--", label="state-space smoother")
@@ -87,7 +94,7 @@ def f_edges(t, V, xn, dt, kf, ks_v, out="s_edges.png"):
 def f_impact(ti, Vi, cand, timp, key_tv, scores_txt, out="s_impact.png"):
     fig, axs = plt.subplots(1, 2, figsize=SL, gridspec_kw=dict(width_ratios=[1.35, 1]))
     ax = axs[0]; tm = timp[3]; m = np.abs(ti - tm) < 0.008
-    ax.plot(ti[m], Vi[m], color=C["truth"], lw=3.6, label="true velocity", zorder=1)
+    ax.plot(ti[m], Vi[m], **TRUTH, lw=2.8, label="true velocity", zorder=5)
     ax.plot(ti[m], cand[key_tv][m], color=C["tv"], lw=2.2, label="total variation (L1)")
     ax.plot(ti[m], cand["Whittaker fc=350"][m], color=C["whit"], lw=2.0, label="Whittaker (L2)")
     ax.plot(ti[m], cand["Spectral fc=350"][m], color=C["spec"], lw=1.8, label="spectral")
@@ -96,7 +103,7 @@ def f_impact(ti, Vi, cand, timp, key_tv, scores_txt, out="s_impact.png"):
     ax.legend(frameon=False, fontsize=12, loc="lower right")
     ax = axs[1]
     names = [n for n, _ in scores_txt]; vals = [v for _, v in scores_txt]
-    cols = [C["tv"], C["whit"], C["spec"], C["ks"]]
+    cols = [C["tv"], C["whit"], C["spec"], C["ksbar"]]
     b = ax.barh(range(len(vals)), vals, color=cols, height=0.62)
     ax.set_yticks(range(len(vals))); ax.set_yticklabels(names); ax.invert_yaxis()
     ax.set_xlabel("velocity error near impact (% rms)")
@@ -108,7 +115,7 @@ def f_impact(ti, Vi, cand, timp, key_tv, scores_txt, out="s_impact.png"):
 
 def f_integration(t, X, an, dt, x_naive, x_tik, x_ks, out="s_integration.png"):
     fig, ax = plt.subplots(figsize=SL)
-    ax.plot(t, X*1e3, color=C["truth"], lw=3.4, label="true displacement", zorder=3)
+    ax.plot(t, X*1e3, **TRUTH, lw=2.4, label="true displacement", zorder=6)
     ax.plot(t, x_tik*1e3, color=C["tik"], lw=1.9, label="Tikhonov, high-pass 4 Hz", zorder=4)
     ax.plot(t, x_ks*1e3, color=C["ks"], lw=1.6, ls="--", label="state-space smoother + bias state", zorder=5)
     ax2 = ax.twinx(); ax2.plot(t, x_naive*1e3, color=C["bad"], lw=2.0, zorder=1)
@@ -144,7 +151,7 @@ def f_selftune(ratios, out="s_selftune.png"):
         ax.bar(xs + (i-1.5)*w, v, w, label=nm, color=col)
         for xx, vv in zip(xs + (i-1.5)*w, v):
             ax.text(xx, vv + 0.05, f"{vv:.2f}", ha="center", fontsize=11)
-    ax.axhline(1.0, color="k", lw=1.6, ls="--")
+    ax.axhline(1.0, color=C["truth"], lw=1.6, ls="--")
     ax.text(-0.42, 1.12, "parity with a perfectly tuned method", fontsize=12, ha="left")
     ax.set_xticks(xs); ax.set_xticklabels([f"{n}% position noise" for n in noise])
     ax.set_ylabel("error / best oracle-tuned error")
@@ -158,7 +165,7 @@ def f_uncertainty(t, A, ks, out="s_uncertainty.png"):
     est = ks["a"][sl]; sd = ks["std"][sl, 2]
     ax.fill_between(t[sl], est-2*sd, est+2*sd, color=C["whit"], alpha=0.28, label="$\\pm 2\\sigma$ posterior band")
     ax.plot(t[sl], est, color=C["whit"], lw=2.0, label="estimated acceleration")
-    ax.plot(t[sl], A[sl], color=C["truth"], lw=2.6, ls="--", label="true acceleration")
+    ax.plot(t[sl], A[sl], **TRUTH, lw=2.4, label="true acceleration")
     ax.set_xlabel("time (s)"); ax.set_ylabel("acceleration (m/s$^2$)")
     ax.set_title("The smoother reports its own uncertainty -- no other method here does")
     ax.legend(frameon=False, fontsize=13, loc="upper right")
