@@ -97,7 +97,7 @@ def escaping_formatter(inner):
         so stateful formatters (ScalarFormatter's offset and order of
         magnitude, LogFormatter's minor-tick suppression) keep working.
 
-    Defined inside a function so this module is valid as a skill sidecar.
+    Defined inside a function so importing this module has no side effects.
     """
     from matplotlib.ticker import Formatter
 
