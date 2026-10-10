@@ -10,14 +10,17 @@ Full methods note, benchmark tables, tuning rules and decision guide: `README.md
 ## Layout
 
     README.md          methods note -- read this first
-    python/            kinematics.py (the library), bench.py (ground truth + sweeps),
-                       figs.py / figs_slides.py (figures), deck_lib.py / build_deck.py (talk)
-    matlab/            base-MATLAB port, no toolboxes; same function names as Python
+    python/            kinematics.py (the library), bench.py / bench_delay.py (ground truth + sweeps),
+                       figs.py / figs_slides.py / figs_delay.py (figures),
+                       build_deck_nld.py (current talk, NLD template; deck_lib.py / build_deck.py
+                       built the earlier version and are kept for its figures' history)
+    matlab/            MATLAB port of every routine; base MATLAB except Levant default L
+                       and trapz-detrend (Signal Processing Toolbox); same names as Python
                        (one exception: kin_noisevar here, kin_noise_var in Python)
     figures/           s_*.{pdf,png} talk figures, fig1/fig2 paper figures
                        PDFs are vector with fonttype=42 -- editable in Illustrator/Affinity
-    data/              benchmark_summary.csv, diff_noise_sweep.csv
-    talk/              differentiation_integration_talk.pptx (26 slides, speaker notes carry timing)
+    data/              benchmark_summary.csv, diff_noise_sweep.csv, delay_benchmark.csv
+    talk/              differentiation_integration_talk.pptx (40 slides, NLD brand; notes carry timing)
 
 ## Validating the MATLAB port
 

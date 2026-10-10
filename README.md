@@ -17,11 +17,11 @@ method adds a **regularity prior** and differs only in which one:
 |---|---|
 | signal is bandlimited and periodic | spectral (FFT × (iω)ⁿ) |
 | signal is locally a low-order polynomial | Savitzky–Golay, Lanczos |
-| signal lies in a low-rank delay-embedding subspace | SVD / SSA |
+| **signal lies in a low-rank delay-embedding subspace** | **delay SVD (SSA) / SOD** |
 | p-th derivative is small in L2 | Whittaker–Henderson, Tikhonov, smoothing spline |
 | **derivative is piecewise smooth (L1)** | **total-variation (Chartrand)** |
 | **(n)-th derivative is white noise** | **Kalman/RTS kinematic smoother, GP** |
-| **(n+1)-th derivative is merely bounded** | **Levant sliding-mode differentiator** |
+| **third derivative is merely bounded** | **Levant sliding-mode differentiator** |
 
 The three in bold are the families beyond the frequency-domain and SVD methods
 you already know. The last two are worth separating out:
@@ -162,6 +162,73 @@ this is the answer.
 
 ---
 
+## Delay reconstruction (added October 2026)
+
+`diff_delay` / `kin_diff_delay` embed the record in a trajectory (Hankel)
+matrix with window `L = N/3`, keep the directions above the Gavish–Donoho hard
+threshold, drop any kept direction whose mean frequency lies above the band
+where the PSD clears the noise floor (`signal_band`), average back along the
+anti-diagonals and differentiate the reconstruction with a fourth-order
+stencil. Nothing is tuned by hand. Several channels can be embedded side by
+side (multichannel SSA). `int_delay` / `kin_int_delay` do the same to an
+acceleration record, discard every component below a corner `fc`, and
+integrate the clean reconstruction with Tikhonov. Every number below is from
+`python/bench_delay.py`, recorded in `data/delay_benchmark.csv`.
+
+### Differentiating the Duffing decay (seed 110; velocity / acceleration, % rms)
+
+| method | 0.1 % noise | 1 % noise | 5 % noise |
+|---|---|---|---|
+| Spectral (FFT), oracle | 0.081 / 0.341 | 0.522 / 1.442 | 2.382 / 6.121 |
+| Whittaker p=3, oracle | 0.133 / 0.546 | 0.741 / 2.481 | 2.444 / 6.742 |
+| Smoothing spline, exact GCV | 0.315 / 4.402 | 1.161 / 7.573 | 3.155 / 12.696 |
+| State-space n=4, self-tuned | 0.175 / 1.214 | 0.827 / 3.328 | 2.542 / 7.242 |
+| **Delay SVD, self-tuned** | **0.052 / 0.222** | **0.318 / 0.940** | **1.549 / 4.429** |
+| Delay SOD inside SVD subspace | 0.052 / 0.222 | 0.320 / 0.939 | 1.753 / 5.145 |
+| SOD of full embedding, L = 161 | 0.096 / 0.402 | 0.517 / 1.426 | 2.882 / 8.096 |
+| SOD of full embedding, L = 641 | 3.052 / 9.365 | 3.054 / 9.358 | 13.964 / 17.174 |
+
+The self-tuned delay estimate beats the oracle-tuned spectral method by
+1.4–1.6× at every noise level. The reason is the prior: a lightly damped decay
+is genuinely low-rank in delay coordinates. Two cautions:
+
+- **SVD versus SOD.** SOD ranks directions by smoothness and ignores energy.
+  With long windows there are noise directions smoother than the signal, and
+  SOD of the whole embedding admits them (3 % error at L = 641). Used inside
+  the SVD signal subspace, SOD only reorders that subspace by frequency: same
+  reconstruction for differentiation, and the right ordering for drift removal
+  (below).
+- **The noise guard is not optional.** Without it, at L = 1501 a single noise
+  direction at 637 Hz passed the threshold and gave 90 % acceleration error.
+
+### Other records
+
+| record | best competitor | delay method |
+|---|---|---|
+| 3-DOF chain, mass 1 (1 % noise; v / a) | Whittaker oracle 0.876 / 2.503 | SVD 0.527 / 1.404 |
+| 3-DOF chain, mass 2 | Whittaker oracle 1.087 / 2.395 | SVD 0.641 / 1.284; 3 sensors jointly 0.359 / 0.767 |
+| 3-DOF chain, mass 3 | Whittaker oracle 0.953 / 2.207 | SVD 0.378 / 0.635; 3 sensors jointly 0.259 / 0.625 |
+| vibro-impact, ±4 ms of impacts (v) | total variation 16.95 | SVD 23.06 |
+| drifting accelerometer, seed 7 (x / v) | Tikhonov oracle 0.883 / 2.044; spectral oracle 0.502 / 0.252 | SOD, fc = 4 Hz: 0.515 / 1.339 (SVD 0.722 / 3.681) |
+| drifting accelerometer, seed 11 | Tikhonov oracle 0.740 / 1.734; spectral oracle 0.548 / 0.267 | SOD 0.473 / 1.096 (SVD 0.565 / 2.987) |
+
+Joint processing of the three chain sensors helps the weaker channels and
+costs a little on mass 1 (0.736 / 2.152), so it is a modest extra, not a second
+win. At impacts the method is no better than the quadratic penalties. For
+integration, SOD ordering separates the drift that SVD ordering leaves mixed,
+but on this narrowband record the oracle spectral integrator remains best for
+velocity.
+
+### Causal (online) differentiation
+
+`kinsmooth(..., causal=True)` / `opt.causal = true` returns the forward Kalman
+filter of the same model. On the 1 % record it gives 5.31 % / 25.5 % velocity /
+acceleration error, self-tuned, against 12.03 % / 35.2 % for Levant's
+differentiator at its swept optimum. For genuine online use, fit `q` once on a
+calibration record and pass it in.
+
+---
+
 ## Recommendation
 
 1. **Have both a displacement and an acceleration channel?** Fuse them in one
@@ -179,9 +246,14 @@ this is the answer.
    the tuning-by-eye.
 5. **Integrating acceleration, acceleration only?** Tikhonov with the corner set
    below your lowest mode and above the drift. Never a bare `cumtrapz`.
-6. **Online / control loop?** Levant's differentiator — it is the only causal
-   one here, and its accuracy penalty offline is the price of that.
-7. Use the FFT method when the record is long, stationary and you can discard
+6. **Online / control loop?** The causal Kalman filter (`causal=True`): half
+   Levant's error on the benchmark, self-tuned. Levant's differentiator only
+   when you need finite-time exactness under a known bound on the third
+   derivative.
+7. **Quasi-periodic record (free decay, ringdown, steady forced response)?**
+   `diff_delay` — no knob, and the most accurate method tested on such records.
+   Integrating such a record: `int_delay` with SOD ordering.
+8. Use the FFT method when the record is long, stationary and you can discard
    the ends; it is genuinely the most accurate in the interior.
 
 ---
@@ -215,11 +287,14 @@ alone.
 
 ## Two warnings
 
-- **GCV failed on this record.** `scipy.interpolate.make_smoothing_spline`
-  selects λ by generalised cross-validation and returned an essentially flat
-  fit — 100 % error — on a 6000-point oscillatory decay. The spline itself is
-  fine with λ set explicitly (0.908 % at 1 % noise). Do not trust automatic GCV
-  on long, densely-sampled oscillatory records without checking the fit.
+- **scipy's GCV failed on this record; GCV itself did not.**
+  `scipy.interpolate.make_smoothing_spline` selects λ by generalised
+  cross-validation and returned an essentially flat fit — 100 % error — on a
+  6000-point oscillatory decay. The spline itself is fine with λ set
+  explicitly (0.908 % at 1 % noise). The MATLAB port (`kin_diff_spline`)
+  computes the GCV score with an exact O(N) trace and finds a clear minimum at
+  λ = 8.4e-9 (oracle 3.2e-8), giving 1.18 % velocity error — GCV's usual mild
+  under-smoothing, not a failure. Check any automatic GCV fit before use.
 - **Total variation is only meaningful if its solver converges — and the naive
   ones do not.** Posed in Chartrand's original variables the Hessian
   `AᵀA + αL` is dense and so ill-conditioned that conjugate gradients stalls at
@@ -237,6 +312,12 @@ alone.
   in this library sensitive to *which* standard deviation you normalise by --
   numpy divides by N, MATLAB by N-1, and on a 6000-point record that 83 ppm
   difference moves the answer by 1.5e-6 while every linear method is unaffected.
+- **Levant's default bound was the wrong derivative.** The three-state
+  differentiator is exact when the *third* derivative is bounded, for either
+  output. The earlier default bounded the (order+1)-th derivative and set L
+  about 100× too small (119 % velocity error). The default is now max|jerk|
+  from the self-tuned state-space smoother: 7.7 %, against 7.4 % at the swept
+  optimum.
 - **Bias states are weakly identified.** In the acceleration-only run the fitted
   offset was within a factor of ~2 of truth, and in the fused run it had the
   wrong sign. A constant offset and a slow drift are nearly the same thing over
@@ -247,8 +328,10 @@ alone.
 
 ## Cross-validation status
 
-The MATLAB port has been run against the Python reference on MATLAB R2026a:
-**12 of 12 checks pass.** The agreement levels are diagnostic of each routine's
+The MATLAB port has been run against the Python reference on MATLAB R2026b:
+**38 of 38 checks pass** (12 original, 13 for the routines ported in the first
+round, 12 for the delay methods, exact GCV and the causal filter, and one
+internal consistency check: filter and smoother agree at the last sample). The agreement levels are diagnostic of each routine's
 conditioning rather than arbitrary:
 
 | routine | agreement | what sets the floor |
@@ -262,6 +345,16 @@ conditioning rather than arbitrary:
 | `kin_smooth` (all outputs) | 5e-9 to 1e-5 | RTS recursion depth |
 | `kin_smooth` fitted `q` | 7e-5 | two independent Brent searches over a Kalman likelihood |
 | `kin_noisevar` | 7e-4 | Welch estimator reimplemented, not ported line-for-line |
+| `kin_diff_spline` (orders 1, 2) | 2e-13, 4e-13 | exact; Reinsch form vs scipy B-spline, full record |
+| `kin_diff_levant` (all modes) | ≤ 6e-14 | exact; same recursion |
+| `kin_diff_gp` (mean, std) | 4e-14, 2e-12 | exact; dense Cholesky, N = 2000 |
+| `kin_int_trapz_detrend` | 6e-10 | scipy filtfilt padding reproduced; Butterworth coefficient rounding |
+| `kin_diff_spline`, GCV | 4e-10 (λ to 5e-8) | exact trace in both languages; λ from two bounded searches |
+| `kin_diff_levant`, default L | 5e-4 | L from `kin_smooth`'s jerk, which carries the smoother's 1e-5 floor |
+| `kin_smooth`, causal | 1e-5 | same floor as the smoother |
+| `kin_signal_band` | exact | Welch with scipy's conventions |
+| `kin_diff_delay` (SVD, SOD, SOD full, 3 channels) | 2e-13 to 2e-11 | symmetric eigensolvers; order 2 amplifies by the stencil |
+| `kin_int_delay` (SOD, SVD) | 1e-12 to 8e-10 | Tikhonov's sparse-solver floor for displacement |
 
 The Whittaker and Tikhonov figures are the sparse-solver accuracy floor, not
 error: with `lam = (2*pi*fc)^(-2p)` multiplying `D` scaled by `dt^-p`, the
@@ -272,10 +365,14 @@ matrix condition number is large and 1e-10 is what two different direct solvers
 ## Files
 
     kinematics.py          the Python library (numpy + scipy only)
-    matlab/                the MATLAB port, base MATLAB only, plus a self-test
+    matlab/                the MATLAB port (all routines), plus a self-test
     bench.py               benchmark harness (ground truth, noise, knob sweeps)
+    bench_delay.py         benchmark of the October 2026 additions
     figs.py                figure code
-    benchmark_summary.csv  every number quoted above
+    figs_delay.py          figures for the delay and causal slides
+    build_deck_nld.py      rebuilds the talk in the NLD template from the previous deck
+    benchmark_summary.csv  every number quoted above the delay section
+    delay_benchmark.csv    every number in the delay section
     diff_noise_sweep.csv   the noise-level table
 
 ### Python
@@ -292,6 +389,12 @@ r['x'], r['v'], r['a'], r['std']                        # + posterior std devs
 
 r = kin.kinsmooth(t, x=x, nstate=4)                # differentiate, self-tuned
 r = kin.kinsmooth(t, a=acc, bias=True, hp=2.0)     # integrate, needs hp
+r = kin.kinsmooth(t, x=x, causal=True)             # online: forward filter only
+
+v = kin.diff_delay(x, dt, order=1)                 # delay SVD, no knob
+v = kin.diff_delay(X3, dt, order=1)                # several channels jointly (n x m)
+d = kin.int_delay(acc, dt, order=2, fc=4.0)        # SOD drift removal + Tikhonov
+v = kin.diff_spline(x, dt, 1)                      # exact GCV
 ```
 
 Gaps are `NaN`; a slower channel is just a mostly-`NaN` column; non-uniform `t`
@@ -305,4 +408,7 @@ cd matlab; test_kinematics          % verifies the port against the Python run
 v  = kin_diff_whittaker(x, dt, 1, 70);
 d  = kin_int_tikhonov(acc, dt, 2, 2.0);
 r  = kin_smooth(t, struct('x',x,'a',acc,'nstate',4,'bias',true));
+v  = kin_diff_delay(x, dt, 1);                       % delay SVD, no knob
+d  = kin_int_delay(acc, dt, 2, 4.0);                 % SOD drift removal
+r  = kin_smooth(t, struct('x',x,'causal',true));     % online
 ```

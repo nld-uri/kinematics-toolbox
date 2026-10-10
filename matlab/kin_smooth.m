@@ -9,6 +9,11 @@ function out = kin_smooth(t, opt)
 %     .hp          high-pass corner in Hz -- REQUIRED when integrating
 %                  acceleration alone, since x and mean v are then unobservable
 %     .q           process-noise PSD; omitted => fitted by marginal likelihood
+%     .causal      true to return the forward Kalman FILTER estimates instead
+%                  of the RTS smoother: each output sample uses only data up
+%                  to that time, so it can run online (lag, larger error).
+%                  For true online use fit .q once on a calibration record
+%                  and pass it in; the default fit uses the whole record.
 %
 %   State model: white noise on the nstate-th derivative (integrated random
 %   walk).  No model of the system is used -- only the assertion that the
@@ -52,7 +57,11 @@ if ~isempty(hp)
     R = [R, q/wc^(2*nstate), q/wc^(2*nstate-2)];
     Y = [Y, zeros(n,2)];
 end
-[ms, Ps, ll] = smoother(q);
+if g('causal', false)
+    [ms, Ps, ll] = kfilter(q, true);
+else
+    [ms, Ps, ll] = smoother(q);
+end
 out.x = ms(:,1);  out.v = ms(:,2);  out.a = ms(:,3);
 if nstate > 3, out.j = ms(:,4); end
 if bias, out.bias = ms(:,nstate+1); end

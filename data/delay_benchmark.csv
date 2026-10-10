@@ -1,0 +1,101 @@
+task,method,tuning,metric,value,note
+differentiate position,"Spectral (FFT), oracle",oracle,velocity error % rms,0.0813,"0.1% noise, seed 110"
+differentiate position,"Spectral (FFT), oracle",oracle,acceleration error % rms,0.3407,"0.1% noise, seed 110"
+differentiate position,"Whittaker p=3, oracle",oracle,velocity error % rms,0.133,"0.1% noise, seed 110"
+differentiate position,"Whittaker p=3, oracle",oracle,acceleration error % rms,0.5458,"0.1% noise, seed 110"
+differentiate position,"Smoothing spline, GCV",GCV,velocity error % rms,0.3151,"0.1% noise, seed 110"
+differentiate position,"Smoothing spline, GCV",GCV,acceleration error % rms,4.4021,"0.1% noise, seed 110"
+differentiate position,"State-space n=4, self",self,velocity error % rms,0.1751,"0.1% noise, seed 110"
+differentiate position,"State-space n=4, self",self,acceleration error % rms,1.2136,"0.1% noise, seed 110"
+differentiate position,"Delay SVD, self",self,velocity error % rms,0.0517,"0.1% noise, seed 110"
+differentiate position,"Delay SVD, self",self,acceleration error % rms,0.2217,"0.1% noise, seed 110"
+differentiate position,"Delay SOD (in subspace), self",self,velocity error % rms,0.0517,"0.1% noise, seed 110"
+differentiate position,"Delay SOD (in subspace), self",self,acceleration error % rms,0.2217,"0.1% noise, seed 110"
+differentiate position,"Delay SOD full, L=161",self,velocity error % rms,0.0963,"0.1% noise, seed 110"
+differentiate position,"Delay SOD full, L=161",self,acceleration error % rms,0.4017,"0.1% noise, seed 110"
+differentiate position,"Delay SOD full, L=641",self,velocity error % rms,3.0517,"0.1% noise, seed 110"
+differentiate position,"Delay SOD full, L=641",self,acceleration error % rms,9.3649,"0.1% noise, seed 110"
+differentiate position,"Spectral (FFT), oracle",oracle,velocity error % rms,0.5221,"1.0% noise, seed 110"
+differentiate position,"Spectral (FFT), oracle",oracle,acceleration error % rms,1.4424,"1.0% noise, seed 110"
+differentiate position,"Whittaker p=3, oracle",oracle,velocity error % rms,0.7408,"1.0% noise, seed 110"
+differentiate position,"Whittaker p=3, oracle",oracle,acceleration error % rms,2.4809,"1.0% noise, seed 110"
+differentiate position,"Smoothing spline, GCV",GCV,velocity error % rms,1.1607,"1.0% noise, seed 110"
+differentiate position,"Smoothing spline, GCV",GCV,acceleration error % rms,7.5731,"1.0% noise, seed 110"
+differentiate position,"State-space n=4, self",self,velocity error % rms,0.8271,"1.0% noise, seed 110"
+differentiate position,"State-space n=4, self",self,acceleration error % rms,3.3282,"1.0% noise, seed 110"
+differentiate position,"Delay SVD, self",self,velocity error % rms,0.3185,"1.0% noise, seed 110"
+differentiate position,"Delay SVD, self",self,acceleration error % rms,0.9398,"1.0% noise, seed 110"
+differentiate position,"Delay SOD (in subspace), self",self,velocity error % rms,0.3202,"1.0% noise, seed 110"
+differentiate position,"Delay SOD (in subspace), self",self,acceleration error % rms,0.9389,"1.0% noise, seed 110"
+differentiate position,"Delay SOD full, L=161",self,velocity error % rms,0.5172,"1.0% noise, seed 110"
+differentiate position,"Delay SOD full, L=161",self,acceleration error % rms,1.4264,"1.0% noise, seed 110"
+differentiate position,"Delay SOD full, L=641",self,velocity error % rms,3.0536,"1.0% noise, seed 110"
+differentiate position,"Delay SOD full, L=641",self,acceleration error % rms,9.3576,"1.0% noise, seed 110"
+differentiate position,"Spectral (FFT), oracle",oracle,velocity error % rms,2.3823,"5.0% noise, seed 110"
+differentiate position,"Spectral (FFT), oracle",oracle,acceleration error % rms,6.1208,"5.0% noise, seed 110"
+differentiate position,"Whittaker p=3, oracle",oracle,velocity error % rms,2.4441,"5.0% noise, seed 110"
+differentiate position,"Whittaker p=3, oracle",oracle,acceleration error % rms,6.742,"5.0% noise, seed 110"
+differentiate position,"Smoothing spline, GCV",GCV,velocity error % rms,3.1551,"5.0% noise, seed 110"
+differentiate position,"Smoothing spline, GCV",GCV,acceleration error % rms,12.696,"5.0% noise, seed 110"
+differentiate position,"State-space n=4, self",self,velocity error % rms,2.5422,"5.0% noise, seed 110"
+differentiate position,"State-space n=4, self",self,acceleration error % rms,7.2422,"5.0% noise, seed 110"
+differentiate position,"Delay SVD, self",self,velocity error % rms,1.5485,"5.0% noise, seed 110"
+differentiate position,"Delay SVD, self",self,acceleration error % rms,4.4287,"5.0% noise, seed 110"
+differentiate position,"Delay SOD (in subspace), self",self,velocity error % rms,1.7535,"5.0% noise, seed 110"
+differentiate position,"Delay SOD (in subspace), self",self,acceleration error % rms,5.1449,"5.0% noise, seed 110"
+differentiate position,"Delay SOD full, L=161",self,velocity error % rms,2.8815,"5.0% noise, seed 110"
+differentiate position,"Delay SOD full, L=161",self,acceleration error % rms,8.0964,"5.0% noise, seed 110"
+differentiate position,"Delay SOD full, L=641",self,velocity error % rms,13.9643,"5.0% noise, seed 110"
+differentiate position,"Delay SOD full, L=641",self,acceleration error % rms,17.1736,"5.0% noise, seed 110"
+integrate acceleration,"Tikhonov, oracle",oracle,displacement error % rms,0.8834,seed 7
+integrate acceleration,"Tikhonov, oracle",oracle,velocity error % rms,2.0437,seed 7
+integrate acceleration,"Spectral, oracle",oracle,displacement error % rms,0.5022,seed 7
+integrate acceleration,"Spectral, oracle",oracle,velocity error % rms,0.2519,seed 7
+integrate acceleration,"State-space (self q, hp=4)",fc=4 Hz,displacement error % rms,1.7213,seed 7
+integrate acceleration,"State-space (self q, hp=4)",fc=4 Hz,velocity error % rms,1.6038,seed 7
+integrate acceleration,"Delay SOD, fc=4",fc=4 Hz,displacement error % rms,0.5147,seed 7
+integrate acceleration,"Delay SOD, fc=4",fc=4 Hz,velocity error % rms,1.3385,seed 7
+integrate acceleration,"Delay SVD, fc=4",fc=4 Hz,displacement error % rms,0.7217,seed 7
+integrate acceleration,"Delay SVD, fc=4",fc=4 Hz,velocity error % rms,3.6812,seed 7
+integrate acceleration,"Tikhonov, oracle",oracle,displacement error % rms,0.7401,seed 11
+integrate acceleration,"Tikhonov, oracle",oracle,velocity error % rms,1.7339,seed 11
+integrate acceleration,"Spectral, oracle",oracle,displacement error % rms,0.548,seed 11
+integrate acceleration,"Spectral, oracle",oracle,velocity error % rms,0.2675,seed 11
+integrate acceleration,"State-space (self q, hp=4)",fc=4 Hz,displacement error % rms,1.717,seed 11
+integrate acceleration,"State-space (self q, hp=4)",fc=4 Hz,velocity error % rms,1.6017,seed 11
+integrate acceleration,"Delay SOD, fc=4",fc=4 Hz,displacement error % rms,0.4727,seed 11
+integrate acceleration,"Delay SOD, fc=4",fc=4 Hz,velocity error % rms,1.0965,seed 11
+integrate acceleration,"Delay SVD, fc=4",fc=4 Hz,displacement error % rms,0.5653,seed 11
+integrate acceleration,"Delay SVD, fc=4",fc=4 Hz,velocity error % rms,2.9874,seed 11
+"multimode, 3 sensors","Whittaker p=3, oracle",oracle,channel 1 velocity error % rms,0.8762,"1% noise, seed 5"
+"multimode, 3 sensors","Whittaker p=3, oracle",oracle,channel 1 acceleration error % rms,2.5027,"1% noise, seed 5"
+"multimode, 3 sensors","State-space n=4, self",self,channel 1 velocity error % rms,1.0994,"1% noise, seed 5"
+"multimode, 3 sensors","State-space n=4, self",self,channel 1 acceleration error % rms,4.122,"1% noise, seed 5"
+"multimode, 3 sensors","Delay SVD, one channel",self,channel 1 velocity error % rms,0.5269,"1% noise, seed 5"
+"multimode, 3 sensors","Delay SVD, one channel",self,channel 1 acceleration error % rms,1.404,"1% noise, seed 5"
+"multimode, 3 sensors","Delay SVD, 3 channels (L=213)",self,channel 1 velocity error % rms,0.7356,"1% noise, seed 5"
+"multimode, 3 sensors","Delay SVD, 3 channels (L=213)",self,channel 1 acceleration error % rms,2.1523,"1% noise, seed 5"
+"multimode, 3 sensors","Whittaker p=3, oracle",oracle,channel 2 velocity error % rms,1.0874,"1% noise, seed 5"
+"multimode, 3 sensors","Whittaker p=3, oracle",oracle,channel 2 acceleration error % rms,2.3946,"1% noise, seed 5"
+"multimode, 3 sensors","State-space n=4, self",self,channel 2 velocity error % rms,1.6577,"1% noise, seed 5"
+"multimode, 3 sensors","State-space n=4, self",self,channel 2 acceleration error % rms,6.1921,"1% noise, seed 5"
+"multimode, 3 sensors","Delay SVD, one channel",self,channel 2 velocity error % rms,0.6412,"1% noise, seed 5"
+"multimode, 3 sensors","Delay SVD, one channel",self,channel 2 acceleration error % rms,1.2838,"1% noise, seed 5"
+"multimode, 3 sensors","Delay SVD, 3 channels (L=213)",self,channel 2 velocity error % rms,0.3593,"1% noise, seed 5"
+"multimode, 3 sensors","Delay SVD, 3 channels (L=213)",self,channel 2 acceleration error % rms,0.7674,"1% noise, seed 5"
+"multimode, 3 sensors","Whittaker p=3, oracle",oracle,channel 3 velocity error % rms,0.9529,"1% noise, seed 5"
+"multimode, 3 sensors","Whittaker p=3, oracle",oracle,channel 3 acceleration error % rms,2.2067,"1% noise, seed 5"
+"multimode, 3 sensors","State-space n=4, self",self,channel 3 velocity error % rms,1.326,"1% noise, seed 5"
+"multimode, 3 sensors","State-space n=4, self",self,channel 3 acceleration error % rms,4.9,"1% noise, seed 5"
+"multimode, 3 sensors","Delay SVD, one channel",self,channel 3 velocity error % rms,0.3777,"1% noise, seed 5"
+"multimode, 3 sensors","Delay SVD, one channel",self,channel 3 acceleration error % rms,0.6346,"1% noise, seed 5"
+"multimode, 3 sensors","Delay SVD, 3 channels (L=213)",self,channel 3 velocity error % rms,0.2591,"1% noise, seed 5"
+"multimode, 3 sensors","Delay SVD, 3 channels (L=213)",self,channel 3 acceleration error % rms,0.6253,"1% noise, seed 5"
+vibro-impact,"Total variation, alpha=1e-5",fixed,velocity error % rms near impacts,16.9472,"+/-4 ms, 5 impacts, 0.5% noise, seed 3"
+vibro-impact,Whittaker fc=350,fixed,velocity error % rms near impacts,21.2256,"+/-4 ms, 5 impacts, 0.5% noise, seed 3"
+vibro-impact,"State-space n=4, self",self,velocity error % rms near impacts,24.5677,"+/-4 ms, 5 impacts, 0.5% noise, seed 3"
+vibro-impact,"Delay SVD, self",self,velocity error % rms near impacts,23.0615,"+/-4 ms, 5 impacts, 0.5% noise, seed 3"
+causal differentiation,"Levant, oracle L",oracle,velocity error % rms,12.0259,"1% noise, seed 110"
+causal differentiation,"Levant, oracle L",oracle,acceleration error % rms,35.2187,"1% noise, seed 110"
+causal differentiation,"Kalman filter n=4, self",self,velocity error % rms,5.3115,"1% noise, seed 110"
+causal differentiation,"Kalman filter n=4, self",self,acceleration error % rms,25.4815,"1% noise, seed 110"

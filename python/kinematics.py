@@ -9,6 +9,7 @@ Two groups plus a unifier:
 
   diff_*   position  -> velocity, acceleration
   int_*    acceleration -> velocity, displacement
+  *_delay  the same two tasks through a delay reconstruction (SSA, SOD)
   kinsmooth   one state-space estimator that does either direction, fuses both,
               handles gaps / multirate / non-uniform sampling, returns error bars,
               and tunes itself by marginal likelihood.
@@ -22,7 +23,7 @@ Dependencies: numpy, scipy.
 from __future__ import annotations
 
 import numpy as np
-from scipy import sparse, signal, optimize
+from scipy import sparse, signal, optimize, linalg
 from scipy.sparse.linalg import spsolve, splu
 from scipy.interpolate import make_smoothing_spline
 
@@ -32,6 +33,7 @@ __all__ = [
     "diff_tvreg", "diff_levant", "diff_gp",
     "int_spectral", "int_trapz_detrend", "int_tikhonov",
     "kinsmooth",
+    "signal_band", "delay_project", "diff_delay", "int_delay",
 ]
 
 
@@ -179,18 +181,109 @@ def _central(s, dt, order):
     return out
 
 
-def diff_spline(x, dt, order=1, lam=None):
-    """Cubic smoothing spline (GCV-selected lambda by default), differentiated.
+def diff_spline(x, dt, order=1, lam=None, fc=None, return_info=False):
+    """Cubic smoothing spline, differentiated analytically at the samples.
 
-    scipy.interpolate.make_smoothing_spline picks lambda by generalised
-    cross-validation, so this is the one differentiator with no knob at all.
-    Good default when you have no idea what the noise level is; GCV tends to
-    under-smooth when the noise is correlated.
+    Minimises  sum (x_i - f(t_i))^2 + lam * int f''(t)^2 dt  (the objective of
+    scipy.interpolate.make_smoothing_spline).  lam is chosen by, in order:
+    `lam` if given; `fc` (Hz) through  lam = (2*pi*fc)**-4 / dt  (the data term
+    is a sum, i.e. 1/dt times an integral, so the response is
+    1/(1 + lam*dt*omega^4)); otherwise generalised cross-validation.
+
+    GCV is computed here, not by scipy.  make_smoothing_spline's own GCV
+    selection returned an essentially flat fit (100 % error) on the 6000-point
+    benchmark decay.  The exact score n*||x - f||^2 / (n - tr A)^2, with tr A
+    from the band of (R + lam Q'Q)^-1 (Takahashi selected inverse, O(N)), has
+    a single clear minimum there (lam = 8.4e-9 against an oracle of 3.2e-8;
+    1.18 % velocity error against 0.90 %).  GCV still under-smooths mildly,
+    and tends to under-smooth more when the noise is correlated.
+
+    `dt` may be a scalar or the vector of sample times (non-uniform).
+    With return_info=True also returns dict(lam, fc, dof, gcv).
     """
     x = np.asarray(x, float)
-    t = np.arange(len(x)) * dt
+    n = len(x)
+    t = np.asarray(dt, float) if np.ndim(dt) else np.arange(n) * dt
+    h = np.diff(t)
+    gval = np.nan
+    if lam is None and fc is not None:
+        lam = (2 * np.pi * fc) ** -4 / h.mean()
+    if lam is None:
+        lam, gval = _spline_gcv(t, x)
     spl = make_smoothing_spline(t, x, lam=lam)
-    return spl.derivative(order)(t) if order else spl(t)
+    y = spl.derivative(order)(t) if order else spl(t)
+    if return_info:
+        Q, Rm = _reinsch(t)
+        M = (Rm + lam * (Q.T @ Q)).tocsc()
+        dof = n - lam * _trace_inv_band(M, (Q.T @ Q).tocsc())
+        return y, {"lam": lam, "fc": (lam * h.mean()) ** -0.25 / (2 * np.pi),
+                   "dof": dof, "gcv": gval}
+    return y
+
+
+def _reinsch(t):
+    """Q (n x n-2) and R (n-2 tridiagonal) of the Reinsch smoothing-spline form."""
+    n = len(t)
+    h = np.diff(t)
+    i1, i2 = 1 / h[:-1], 1 / h[1:]
+    Q = sparse.diags([i1, -i1 - i2, i2], [0, -1, -2], shape=(n, n - 2), format="csc")
+    Rm = sparse.diags([(h[:-1] + h[1:]) / 3, h[1:-1] / 6, h[1:-1] / 6],
+                      [0, 1, -1], format="csc")
+    return Q, Rm
+
+
+def _trace_inv_band(M, B, bw=2):
+    """trace(M^-1 B) for SPD banded M and B (half-bandwidth bw), O(N).
+
+    Takahashi recurrence on M = L D L': only the band of Z = M^-1 is formed.
+    """
+    m = M.shape[0]
+    ab = np.zeros((bw + 1, m))                     # lower banded storage
+    for k in range(bw + 1):
+        ab[k, :m - k] = M.diagonal(-k)
+    from scipy.linalg import cholesky_banded
+    c = cholesky_banded(ab, lower=True)            # M = C C', C lower
+    d = c[0] ** 2
+    Lb = np.zeros((m, bw))                         # Lb[i, k-1] = L[i+k, i]
+    for k in range(1, bw + 1):
+        Lb[:m - k, k - 1] = c[k, :m - k] / c[0, :m - k]
+    Z = np.zeros((m, bw + 1))                      # Z[i, k] = Zfull[i, i+k]
+    for i in range(m - 1, -1, -1):
+        kmax = min(bw, m - 1 - i)
+        for jo in range(kmax, -1, -1):
+            acc = 0.0
+            for k in range(1, kmax + 1):
+                acc += Lb[i, k - 1] * Z[min(i + k, i + jo), abs(k - jo)]
+            Z[i, jo] = (1.0 / d[i] if jo == 0 else 0.0) - acc
+    s = np.dot(Z[:, 0], B.diagonal(0))
+    for k in range(1, bw + 1):
+        s += 2 * np.dot(Z[:m - k, k], B.diagonal(k))
+    return s
+
+
+def _spline_gcv(t, x):
+    """lam minimising the exact GCV score; coarse log grid then bounded search."""
+    n = len(x)
+    hm = np.diff(t).mean()
+    Q, Rm = _reinsch(t)
+    QtQ = (Q.T @ Q).tocsc()
+    Qtx = Q.T @ x
+
+    def score(lg):
+        L = 10.0 ** lg
+        M = (Rm + L * QtQ).tocsc()
+        r = L * (Q @ spsolve(M, Qtx))
+        trA = n - L * _trace_inv_band(M, QtQ)
+        return n * (r @ r) / (n - trA) ** 2
+
+    grid = np.linspace(np.log10((np.pi / hm) ** -4 / hm),
+                       np.log10((2 * np.pi * 1e-4 / hm) ** -4 / hm), 41)
+    g = np.array([score(v) for v in grid])
+    k = int(np.argmin(g))
+    lo, hi = grid[max(k - 1, 0)], grid[min(k + 1, len(grid) - 1)]
+    res = optimize.minimize_scalar(score, bounds=(lo, hi), method="bounded",
+                                   options={"xatol": 1e-4})
+    return 10.0 ** res.x, float(res.fun)
 
 
 def diff_tvreg(x, dt, alpha=1e-3, order=1, tol=1e-8, maxit=20000,
@@ -279,18 +372,27 @@ def diff_tvreg(x, dt, alpha=1e-3, order=1, tol=1e-8, maxit=20000,
 def diff_levant(x, dt, L=None, order=1, zero_phase=True):
     """Levant's robust exact differentiator (2nd-order sliding mode).
 
-    Finite-time exact for signals whose (order+1)-th derivative is bounded by L,
-    with no assumption of smoothness beyond that and no linear filtering -- it
-    is the standard answer from control theory and is genuinely causal, so it
-    runs online.  Price: chattering at the sampling scale and a phase lag,
-    which `zero_phase` removes by a second backward pass (offline only).
+    Three states z0, z1, z2 track x, x', x''.  Finite-time exact when the
+    THIRD derivative is bounded, |d3x/dt3| <= L, whichever output (order 1
+    or 2) is used.  No smoothness assumption beyond that and no linear
+    filtering -- the standard answer from control theory, and genuinely
+    causal, so it runs online.  Price: chattering at the sampling scale and a
+    phase lag, which `zero_phase` removes by a second backward pass (offline
+    only).
 
-    L : bound on the (order+1)-th derivative.  Estimated crudely if omitted.
+    L : bound on |d3x/dt3|.  If omitted, its maximum from the self-tuned
+        state-space smoother (kinsmooth, nstate=4) -- no knob.  On the
+        benchmark this gives 7.7 % / 18 % velocity / acceleration error,
+        against 7.4 % / 21.6 % at the swept oracle.  The earlier default
+        bounded the (order+1)-th derivative, which is the wrong one for this
+        three-state form; it set L about 100x too small (119 % error).
+        The estimate uses the whole record; for online use supply L from the
+        physics (x = X sin(w t) gives L = X w^3).
     """
     x = np.asarray(x, float)
     if L is None:
-        L = np.max(np.abs(_central(signal.savgol_filter(
-            x, min(len(x) // 4 * 2 + 1, 101), 3), dt, order + 1))) * 2 + 1e-12
+        r = kinsmooth(np.arange(len(x)) * dt, x=x, nstate=4)
+        L = np.max(np.abs(r["j"])) + 1e-12
 
     def run(y):
         n = len(y)
@@ -465,6 +567,238 @@ def _resample_rhs(a, order):
     return b
 
 
+# --------------------------------------------- delay-reconstruction methods
+#
+# Prior: the signal lies in a low-dimensional subspace of its delay
+# reconstruction.  Embed x in a trajectory (Hankel) matrix whose rows are
+# delay vectors [x_k, x_k+1, ..., x_k+L-1], find the signal subspace, project,
+# average back along the anti-diagonals, and differentiate or integrate the
+# reconstruction.  Several channels are embedded side by side (multichannel
+# SSA), so a mode seen strongly in one channel helps the others.
+#
+# Two bases are offered for the subspace:
+#   'svd'  principal directions of the trajectory matrix (SSA).  Ranked by
+#          energy; dimension from the Gavish-Donoho hard threshold.
+#   'sod'  smooth orthogonal decomposition INSIDE that SVD signal subspace:
+#          the generalised eigenproblem  (Y'Y) phi = lam (dY'dY) phi  orders the
+#          same subspace by smoothness, i.e. by frequency, which separates
+#          slow drift from oscillation far more cleanly than energy does.
+#          Identical reconstruction to 'svd' when nothing is dropped; better
+#          when a band is removed (integration with drift).
+#   'sod_full'  SOD on the whole embedding, ranked by smoothness alone.  Kept
+#          for comparison only: with long windows it admits smooth NOISE
+#          directions ahead of signal (3 % velocity error vs 0.34 % for 'svd'
+#          on the benchmark at L = 641) because smoothness ignores energy.
+
+def _gd_omega(beta):
+    """Gavish-Donoho optimal hard-threshold coefficient, unknown noise level."""
+    return 0.56 * beta ** 3 - 0.95 * beta ** 2 + 1.82 * beta + 1.43
+
+
+def _embed(x, L):
+    n, m = x.shape
+    K = n - L + 1
+    idx = np.arange(K)[:, None] + np.arange(L)[None, :]
+    return np.hstack([x[idx, j] for j in range(m)]), K
+
+
+def _hankelize(Xr, n, L, m):
+    K = n - L + 1
+    idx = (np.arange(K)[:, None] + np.arange(L)[None, :]).ravel()
+    cnt = np.bincount(idx, minlength=n).astype(float)
+    out = np.empty((n, m))
+    for j in range(m):
+        out[:, j] = np.bincount(idx, weights=Xr[:, j * L:(j + 1) * L].ravel(),
+                                minlength=n) / cnt
+    return out
+
+
+def _welch_scipy_like(y, dt, nper):
+    return signal.welch(y - y.mean(), fs=1.0 / dt, nperseg=nper, detrend="linear")
+
+
+def signal_band(x, dt, factor=3.0, nperseg=256):
+    """Highest frequency (Hz) where the PSD exceeds `factor` x the white noise
+    plateau near Nyquist (the plateau read as in estimate_noise_var).
+
+    Short segments (default 256) average enough periodograms that a factor of
+    3 is not crossed by noise alone.  For several channels the maximum is
+    returned.
+    """
+    x = np.atleast_2d(np.asarray(x, float).T).T
+    out = 0.0
+    for j in range(x.shape[1]):
+        f, P = _welch_scipy_like(x[:, j], dt, min(len(x), nperseg))
+        m = (f >= 0.40 / dt) & (f <= 0.49 / dt)
+        if not m.any():
+            m = f >= f[-1] * 0.8
+        above = np.nonzero(P > factor * np.median(P[m]))[0]
+        out = max(out, f[above[-1]] if len(above) else f[-1])
+    return float(out)
+
+
+def delay_project(x, dt, L=None, method="svd", rank="auto", fmin=None,
+                  fmax="auto", scale="auto", return_info=False):
+    """Project x (n, or n x m channels) onto its delay-reconstruction signal
+    subspace and return the reconstruction (same shape as x).
+
+    L      window (embedding dimension).  Default min(n//3, 2000).
+    rank   'auto' = Gavish-Donoho hard threshold on the singular values of the
+           trajectory matrix, or an integer.
+    fmin, fmax   drop components whose mean frequency
+           f_k = rms(dq_k/dt) / (2 pi rms(q_k)) lies outside [fmin, fmax] Hz.
+           fmax='auto' uses signal_band(x): a guard against noise directions
+           that pass the threshold at long windows -- one such component at
+           637 Hz gave 90 % acceleration error at L = 1501 without it.
+    scale  per-channel normalisation before embedding; 'auto' divides each
+           channel by its noise std, which is what the Gavish-Donoho threshold
+           assumes (equal-variance noise) and what keeps a loud channel from
+           owning the subspace.
+    info   r (threshold rank), keep (mask over the r components), f (Hz), sv.
+    """
+    x = np.asarray(x, float)
+    vec = x.ndim == 1
+    x = np.atleast_2d(x.T).T
+    n, m = x.shape
+    if L is None:
+        L = int(min(n // 3, 2000))
+    L = int(L)
+    if isinstance(scale, str):
+        scale = (np.sqrt([estimate_noise_var(x[:, j], dt) for j in range(m)])
+                 if m > 1 else np.ones(1))
+    scale = np.asarray(scale, float).reshape(m)
+    if isinstance(fmax, str):
+        fmax = signal_band(x, dt)
+    X, K = _embed(x / scale, L)
+    C = X.T @ X
+    s2, V = np.linalg.eigh(C)
+    o = np.argsort(s2)[::-1]
+    s2, V = s2[o], V[:, o]
+    sv = np.sqrt(np.maximum(s2, 0.0))
+    if isinstance(rank, str):
+        p = L * m
+        r = int(np.sum(sv > _gd_omega(min(K, p) / max(K, p)) * np.median(sv)))
+    else:
+        r = int(rank)
+    r = max(1, min(r, L * m))
+    if method == "svd":
+        B = V[:, :r]
+        Bi = B.T
+    elif method == "sod":
+        Y = X @ V[:, :r]
+        dY = np.diff(Y, axis=0)
+        lam, Phi = linalg.eigh(Y.T @ Y / K, dY.T @ dY / (K - 1))
+        Phi = Phi[:, np.argsort(lam)[::-1]]
+        B = V[:, :r] @ Phi
+        Bi = np.linalg.solve(Phi, V[:, :r].T)
+    elif method == "sod_full":
+        dX = np.diff(X, axis=0)
+        lam, Phi = linalg.eigh(C / K, dX.T @ dX / (K - 1))
+        Phi = Phi[:, np.argsort(lam)[::-1]]
+        B = Phi[:, :r]
+        Bi = np.linalg.inv(Phi)[:r]
+    else:
+        raise ValueError("method must be 'svd', 'sod' or 'sod_full'")
+    Q = X @ B
+    f = np.sqrt(np.mean(np.diff(Q, axis=0) ** 2, 0) / np.mean(Q ** 2, 0)) / (2 * np.pi * dt)
+    keep = np.ones(r, bool)
+    if fmin is not None:
+        keep &= f >= fmin
+    if fmax is not None:
+        keep &= f <= fmax
+    xr = _hankelize(Q[:, keep] @ Bi[keep], n, L, m) * scale
+    if vec:
+        xr = xr[:, 0]
+    if return_info:
+        return xr, {"r": r, "keep": keep, "f": f, "sv": sv, "L": L,
+                    "fmax": fmax, "scale": scale}
+    return xr
+
+
+def _diff4(y, dt, order):
+    """Fourth-order central differences (5-point), second-order at the ends."""
+    g = np.empty_like(y)
+    if order == 1:
+        g[2:-2] = (-y[4:] + 8 * y[3:-1] - 8 * y[1:-3] + y[:-4]) / (12 * dt)
+        g[:2] = np.gradient(y[:4], dt, edge_order=2)[:2]
+        g[-2:] = np.gradient(y[-4:], dt, edge_order=2)[-2:]
+    elif order == 2:
+        g[2:-2] = (-y[4:] + 16 * y[3:-1] - 30 * y[2:-2] + 16 * y[1:-3] - y[:-4]) / (12 * dt ** 2)
+        g[:2] = np.gradient(np.gradient(y[:5], dt, edge_order=2), dt, edge_order=2)[:2]
+        g[-2:] = np.gradient(np.gradient(y[-5:], dt, edge_order=2), dt, edge_order=2)[-2:]
+    else:
+        raise ValueError("order must be 1 or 2")
+    return g
+
+
+def diff_delay(x, dt, order=1, L=None, method="svd", rank="auto", fmax="auto",
+               scale="auto", return_info=False):
+    """Differentiate through the delay reconstruction (SSA / multichannel SSA).
+
+    x is projected onto its delay-space signal subspace (delay_project) and
+    the reconstruction is differentiated with fourth-order central
+    differences; the reconstruction is band-limited to the signal band, where
+    the stencil error is ~(omega dt)^4/30, negligible at any sane sampling
+    rate.  Self-tuning: window from the record length, dimension from the
+    Gavish-Donoho threshold, noise guard from the PSD.
+
+    Benchmark (Duffing decay, 1 % noise, seed 110): 0.32 % / 0.94 % velocity /
+    acceleration error, against 0.54 % / 1.52 % for the oracle-tuned spectral
+    method and 0.83 % / 3.33 % for the self-tuned state-space smoother.  The
+    prior suits quasi-periodic records -- free decays, multimode ringdowns,
+    steady forced response.  It brings nothing at impacts (23 % near-impact
+    error, as for the quadratic penalties; TV gives 17 %).
+
+    Several columns are processed jointly (multichannel SSA); the result has
+    the shape of x.  With return_info=True also returns delay_project's info.
+    """
+    xr, info = delay_project(x, dt, L=L, method=method, rank=rank, fmax=fmax,
+                             scale=scale, return_info=True)
+    if xr.ndim == 1:
+        y = _diff4(xr, dt, order)
+    else:
+        y = np.column_stack([_diff4(xr[:, j], dt, order) for j in range(xr.shape[1])])
+    return (y, info) if return_info else y
+
+
+def int_delay(a, dt, order=2, fc=4.0, fc_int=None, L=None, method="sod",
+              rank="auto", fmax="auto", scale="auto", return_info=False):
+    """Integrate through the delay reconstruction, with drift removed in
+    delay space.
+
+    The acceleration is projected onto its signal subspace with every
+    component of mean frequency below `fc` (Hz) discarded -- drift, offset,
+    slow baseline -- and the clean reconstruction is integrated by
+    int_tikhonov with corner `fc_int`.  'sod' orders the subspace by
+    smoothness, so the slow components separate from the oscillatory ones;
+    with 'svd' they stay mixed by energy and some drift survives.
+
+    fc_int defaults to fc for displacement and fc/4 for velocity (the residual
+    drift after projection is small enough for one integration, not for two).
+    L defaults to min(n//10, 2000).
+
+    Benchmark (1 % white + 0.5 % drift + 0.5 % offset, seed 7, fc = 4 Hz,
+    defaults otherwise): displacement 0.52 %, velocity 1.34 % ('svd': 0.72 %,
+    3.68 %), against 0.91 % / 2.04 % for oracle
+    Tikhonov alone, 0.50 % / 0.25 % for the oracle spectral method on this
+    narrowband record, and 1.72 % / 1.60 % for the state-space smoother.
+    """
+    a = np.asarray(a, float)
+    n = a.shape[0]
+    if L is None:
+        L = int(min(n // 10, 2000))
+    if fc_int is None:
+        fc_int = fc if order == 2 else fc / 4.0
+    ar, info = delay_project(a, dt, L=L, method=method, rank=rank, fmin=fc,
+                             fmax=fmax, scale=scale, return_info=True)
+    if ar.ndim == 1:
+        y = int_tikhonov(ar, dt, order=order, fc=fc_int)
+    else:
+        y = np.column_stack([int_tikhonov(ar[:, j], dt, order=order, fc=fc_int)
+                             for j in range(ar.shape[1])])
+    return (y, info) if return_info else y
+
+
 # ------------------------------------------------- unified state-space form
 
 def _irw_matrices(n_int, dt, q):
@@ -486,7 +820,7 @@ def _irw_matrices(n_int, dt, q):
 
 def kinsmooth(t, x=None, a=None, v=None, q=None, Rx=None, Ra=None, Rv=None,
               nstate=4, bias=False, qbias=None, fit=True, return_cov=False,
-              hp=None):
+              hp=None, causal=False):
     """Kinematic Kalman/RTS smoother: differentiation, integration and fusion.
 
     State [x, v, a, jerk, ...] (nstate components) driven by white noise on the
@@ -515,6 +849,12 @@ def kinsmooth(t, x=None, a=None, v=None, q=None, Rx=None, Ra=None, Rv=None,
     q/(2*pi*hp)**(2*nstate) and q/(2*pi*hp)**(2*nstate-2), which is exactly a
     high-pass of corner hp -- the same admission of ignorance that the cutoff in
     int_spectral makes, but stated as a prior instead of a filter.
+
+    causal : return the forward Kalman FILTER instead of the RTS smoother.
+    Each output sample then uses data up to that time only, so the estimator
+    can run online.  On the benchmark (1 % noise, nstate=4, self-tuned) its
+    velocity error is 5.4 %, against 11.9 % for Levant at its best L.  For
+    genuine online use fit q once on a calibration record and pass it in.
 
     Returns dict with 'x','v','a' (and 'j' if nstate>3), 'bias' if requested,
     'std' (posterior standard deviations), 'q', 'loglik'.
@@ -608,6 +948,8 @@ def kinsmooth(t, x=None, a=None, v=None, q=None, Rx=None, Ra=None, Rv=None,
                 ll += -0.5 * (innov @ alpha) - np.log(np.diag(Lc)).sum() \
                       - 0.5 * len(innov) * np.log(2 * np.pi)
             mf[k] = m; Pf[k] = P
+        if smooth == "filter":
+            return mf, Pf, ll
         if not smooth:
             return ll
         ms = mf.copy(); Ps = Pf.copy()
@@ -639,7 +981,7 @@ def kinsmooth(t, x=None, a=None, v=None, q=None, Rx=None, Ra=None, Rv=None,
         H = np.vstack([H, Hx])
         Y = np.hstack([Y, np.zeros((n, 2))])
 
-    ms, Ps, ll = run(q, True)
+    ms, Ps, ll = run(q, "filter" if causal else True)
     out = {"x": ms[:, 0], "v": ms[:, 1], "a": ms[:, 2],
            "std": np.sqrt(np.maximum(np.diagonal(Ps, axis1=1, axis2=2), 0)),
            "q": q, "loglik": ll, "R": R}
