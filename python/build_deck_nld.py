@@ -417,7 +417,7 @@ def edit(old, figdir):
         (0, "Chartrand (2011), Numerical differentiation of noisy, nonsmooth data — ISRN Appl. Math."),
         (0, "Eilers (2003), A perfect smoother — Anal. Chem. 75:3631"),
         (0, "Särkkä & Solin, Applied Stochastic Differential Equations, CUP 2019"),
-        (0, "Kim, Koh, Boyd & Gorinevsky (2009), l1 trend filtering — SIAM Review 51(2):339"),
+        (0, "Kim, Koh, Boyd & Gorinevsky (2009), ℓ1 trend filtering — SIAM Review 51(2):339"),
         (0, "Levant (1998), Robust exact differentiation via sliding mode technique — Automatica 34:379"),
         (0, "Broomhead & King (1986), Extracting qualitative dynamics from experimental data — Physica D 20"),
         (0, "Golyandina, Nekrutkin & Zhigljavsky (2001), Analysis of Time Series Structure: SSA — CRC"),
@@ -524,6 +524,41 @@ def new_content(figdir):
     return N
 
 
+import re as _re
+_LP = _re.compile(r"\b(L|\u2113)([12])\b")
+
+
+def subscript_norms(prs):
+    """Typeset L1/L2 (and the l1 of 'l1 trend filtering') as L with a
+    subscript digit, splitting runs and keeping their formatting."""
+    def fix_run(r):
+        t = r.find(qn("a:t"))
+        if t is None or not t.text or not _LP.search(t.text):
+            return
+        parts, last = [], 0
+        for m in _LP.finditer(t.text):
+            parts += [(t.text[last:m.start()], False), (m.group(1), False), (m.group(2), True)]
+            last = m.end()
+        parts.append((t.text[last:], False))
+        parent = r.getparent(); idx = parent.index(r)
+        for k, (txt, sub) in enumerate([q for q in parts if q[0]]):
+            nr = copy.deepcopy(r)
+            nt = nr.find(qn("a:t")); nt.text = txt
+            if txt != txt.strip():
+                nt.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+            if sub:
+                rpr = nr.find(qn("a:rPr"))
+                if rpr is None:
+                    rpr = etree.Element(qn("a:rPr")); nr.insert(0, rpr)
+                rpr.set("baseline", "-25000")
+            parent.insert(idx + 1 + k, nr)
+        parent.remove(r)
+
+    for s in prs.slides:
+        for r in list(s._element.iter(qn("a:r"))):
+            fix_run(r)
+
+
 # ------------------------------------------------------------ assemble
 def build(old_path, potx, figdir, icon, out):
     old = read_old(old_path)
@@ -565,6 +600,7 @@ def build(old_path, potx, figdir, icon, out):
         put(o[i], R)
     b_bullets(prs, o["refs"], R)
     b_closing(prs, "[~0.2 min] Leave this up for questions.")
+    subscript_norms(prs)
     prs.save(out)
     print("wrote", out, len(prs.slides._sldIdLst), "slides")
 

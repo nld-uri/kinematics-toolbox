@@ -95,8 +95,8 @@ def f_impact(ti, Vi, cand, timp, key_tv, scores_txt, out="s_impact.png"):
     fig, axs = plt.subplots(1, 2, figsize=SL, gridspec_kw=dict(width_ratios=[1.35, 1]))
     ax = axs[0]; tm = timp[3]; m = np.abs(ti - tm) < 0.008
     ax.plot(ti[m], Vi[m], **TRUTH, lw=2.8, label="true velocity", zorder=5)
-    ax.plot(ti[m], cand[key_tv][m], color=C["tv"], lw=2.2, label="total variation (L1)")
-    ax.plot(ti[m], cand["Whittaker fc=350"][m], color=C["whit"], lw=2.0, label="Whittaker (L2)")
+    ax.plot(ti[m], cand[key_tv][m], color=C["tv"], lw=2.2, label="total variation ($L_1$)")
+    ax.plot(ti[m], cand["Whittaker fc=350"][m], color=C["whit"], lw=2.0, label="Whittaker ($L_2$)")
     ax.plot(ti[m], cand["Spectral fc=350"][m], color=C["spec"], lw=1.8, label="spectral")
     ax.set_xlabel("time (s)"); ax.set_ylabel("velocity (m/s)")
     ax.set_title("Impact: the velocity genuinely jumps")
