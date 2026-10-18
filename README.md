@@ -368,6 +368,13 @@ matrix condition number is large and 1e-10 is what two different direct solvers
 (MATLAB's CHOLMOD, scipy's SuperLU) agree to.
 
 
+## Talk
+
+- [Live slides](https://claude.ai/artifact/6q12emHxX6Jy6DTFMuwNYC): HTML deck, 54 slides, animations running in the browser.
+- `talk/differentiation_integration_talk.pdf`: PDF export of the live slides.
+- `talk/live/`: the five animations as standalone pages, and the code that builds them.
+- `talk/differentiation_integration_talk.pptx`: earlier PowerPoint version with MP4 animations.
+
 ## Animations
 
 Five short animations, computed with `kinematics.py` on the benchmark signals

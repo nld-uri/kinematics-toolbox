@@ -20,7 +20,8 @@ Full methods note, benchmark tables, tuning rules and decision guide: `README.md
     figures/           s_*.{pdf,png} talk figures, fig1/fig2 paper figures
                        PDFs are vector with fonttype=42 -- editable in Illustrator/Affinity
     data/              benchmark_summary.csv, diff_noise_sweep.csv, delay_benchmark.csv
-    talk/              differentiation_integration_talk.pptx (40 slides, NLD brand; notes carry timing)
+    talk/              differentiation_integration_talk.pdf (54 slides, export of the live HTML deck);
+                       differentiation_integration_talk.pptx (earlier PowerPoint version); live/ (animation pages + builder)
 
 ## Validating the MATLAB port
 
