@@ -368,6 +368,20 @@ matrix condition number is large and 1e-10 is what two different direct solvers
 (MATLAB's CHOLMOD, scipy's SuperLU) agree to.
 
 
+## Animations
+
+Five short animations, computed with `kinematics.py` on the benchmark signals
+(`python animations.py`). Each is in `figures/anim/` as an MP4 (embedded in the
+talk), a GIF and a vector still.
+
+| | |
+|---|---|
+| ![](figures/anim/illposed.gif) | **Ill-posedness.** Noise gain $\omega^n$ as the order sweeps from two integrals to two derivatives, and where 1 % position noise overtakes the signal. |
+| ![](figures/anim/knob.gif) | **The one knob.** Whittaker acceleration as the cutoff sweeps 20 to 600 Hz, with the U-shaped error curve. |
+| ![](figures/anim/edges.gif) | **Record ends.** The FFT treats the record as periodic; the wrap-around jump costs 2.7 $\sigma$ of velocity error at the last sample, against 0.02 $\sigma$ for the state-space smoother. |
+| ![](figures/anim/impact.gif) | **Impacts.** Velocity error within ±4 ms of the impacts: spectral 22.8 %, Whittaker 21.2 %, total variation 16.9 %. |
+| ![](figures/anim/fusion.gif) | **Fusion.** Forward Kalman pass (1.70 % velocity error) then backward RTS pass (0.43 %), with the ±2 $\sigma$ posterior band. |
+
 ## Files
 
     kinematics.py          the Python library (numpy + scipy only)
@@ -379,6 +393,8 @@ matrix condition number is large and 1e-10 is what two different direct solvers
     figs_slides.py         slide figure functions (NLD palette)
     make_slide_figs.py     rebuilds the nine original slide figures from bench.py
     build_deck_nld.py      rebuilds the talk in the NLD template from the previous deck
+    animations.py          motion graphics (figures/anim: MP4, GIF, still PDF) from the benchmark signals
+    add_animations.py      inserts the animation slides into talk/differentiation_integration_talk.pptx
     benchmark_summary.csv  every number quoted above the delay section
     delay_benchmark.csv    every number in the delay section
     diff_noise_sweep.csv   the noise-level table
