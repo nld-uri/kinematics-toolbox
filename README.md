@@ -373,7 +373,7 @@ matrix condition number is large and 1e-10 is what two different direct solvers
 - [Live slides](https://claude.ai/artifact/6q12emHxX6Jy6DTFMuwNYC): HTML deck, 54 slides, animations running in the browser.
 - `talk/differentiation_integration_talk.pdf`: PDF export of the live slides.
 - `talk/live/`: the five animations as standalone pages, and the code that builds them.
-- `talk/differentiation_integration_talk.pptx`: earlier PowerPoint version with MP4 animations.
+- `talk/differentiation_integration_talk.pptx`: PowerPoint version of the live slides, animations as MP4 movies, speaker notes.
 
 ## Animations
 
