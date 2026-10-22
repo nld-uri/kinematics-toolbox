@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below (Zenodo DOI)."
+type: software
+title: "Kinematics toolbox: model-free differentiation and integration of measured motion"
+version: 1.0.0
+date-released: "2026-10-21"
+doi: "10.5281/zenodo.23549236"
+license: MIT
+repository-code: "https://github.com/nld-uri/kinematics-toolbox"
+url: "https://web.uri.edu/nld/"
+keywords:
+  - numerical differentiation
+  - numerical integration
+  - regularization
+  - Kalman smoother
+  - total variation
+  - vibration measurement
+authors:
+  - family-names: Chelidze
+    given-names: David
+    orcid: "https://orcid.org/0000-0003-0655-1439"
+    affiliation: "University of Rhode Island"

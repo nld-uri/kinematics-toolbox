@@ -7,6 +7,8 @@ used anywhere -- only a regularity prior on the signal.
 
 Full methods note, benchmark tables, tuning rules and decision guide: `README.md`.
 
+Cite as doi:10.5281/zenodo.23549236 (`CITATION.cff`; `kinematics.cite()` or `kin_cite` print BibTeX).
+
 ## Layout
 
     README.md          methods note -- read this first

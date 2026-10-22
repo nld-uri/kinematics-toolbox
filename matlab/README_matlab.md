@@ -56,3 +56,5 @@ Notes from the port:
 - kin_diff_delay: 0.32 % / 0.94 % velocity / acceleration error on the 1 %
   benchmark, self-tuned; best on quasi-periodic records, no gain at impacts.
 - kin_diff_gp: tests run on the first 2000 samples to keep memory and time low.
+
+    kin_cite.m             prints the BibTeX citation (doi:10.5281/zenodo.23549236)

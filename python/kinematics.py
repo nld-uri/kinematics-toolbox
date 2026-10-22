@@ -34,6 +34,7 @@ __all__ = [
     "int_spectral", "int_trapz_detrend", "int_tikhonov",
     "kinsmooth",
     "signal_band", "delay_project", "diff_delay", "int_delay",
+    "cite", "DOI",
 ]
 
 
@@ -992,3 +993,25 @@ def kinsmooth(t, x=None, a=None, v=None, q=None, Rx=None, Ra=None, Rv=None,
     if return_cov:
         out["P"] = Ps
     return out
+
+
+# ---------------------------------------------------------------- citation
+DOI = "10.5281/zenodo.23549236"
+
+
+def cite(fmt="bibtex"):
+    """Return how to cite the toolbox: fmt = 'bibtex' (default) or 'text'."""
+    if fmt == "bibtex":
+        return ("@software{chelidze2026kinematics,\n"
+                "  author    = {Chelidze, David},\n"
+                "  title     = {Kinematics toolbox: Model-free differentiation and integration of measured motion},\n"
+                "  version   = {1.0.0},\n"
+                "  year      = {2026},\n"
+                "  publisher = {Zenodo},\n"
+                "  doi       = {10.5281/zenodo.23549236},\n"
+                "  url       = {https://github.com/nld-uri/kinematics-toolbox}\n"
+                "}")
+    if fmt == "text":
+        return ("D. Chelidze, Kinematics toolbox: Model-free differentiation and integration of "
+                "measured motion, version 1.0.0, Zenodo (2026). https://doi.org/10.5281/zenodo.23549236")
+    raise ValueError("fmt must be 'bibtex' or 'text'")

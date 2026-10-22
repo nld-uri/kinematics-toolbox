@@ -1,5 +1,7 @@
 # Model-free differentiation and integration of measured motion
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23549236.svg)](https://doi.org/10.5281/zenodo.23549236)
+
 Differentiating a measured displacement and integrating a measured acceleration
 are **the same ill-posed linear inverse problem**, run in opposite directions.
 Write the measurement as
@@ -443,3 +445,24 @@ v  = kin_diff_delay(x, dt, 1);                       % delay SVD, no knob
 d  = kin_int_delay(acc, dt, 2, 4.0);                 % SOD drift removal
 r  = kin_smooth(t, struct('x',x,'causal',true));     % online
 ```
+
+## How to cite
+
+Please cite the software as archived on Zenodo,
+[doi:10.5281/zenodo.23549236](https://doi.org/10.5281/zenodo.23549236).
+`kinematics.cite()` in Python and `kin_cite` in MATLAB print this entry;
+GitHub's **Cite this repository** button gives it from `CITATION.cff`.
+
+```bibtex
+@software{chelidze2026kinematics,
+  author    = {Chelidze, David},
+  title     = {Kinematics toolbox: Model-free differentiation and integration of measured motion},
+  version   = {1.0.0},
+  year      = {2026},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.23549236},
+  url       = {https://github.com/nld-uri/kinematics-toolbox}
+}
+```
+
+`@software` needs biblatex; with BibTeX use `@misc` with the same fields.

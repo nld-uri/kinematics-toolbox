@@ -1,0 +1,14 @@
+{
+  "title": "Kinematics toolbox: model-free differentiation and integration of measured motion",
+  "upload_type": "software",
+  "description": "Model-free differentiation and integration of measured motion in Python and MATLAB: velocity and acceleration from a noisy displacement record, velocity and displacement from a drifting accelerometer, and fusion of both channels. Spectral, Savitzky-Golay, Whittaker-Henderson, Tikhonov, smoothing-spline, total-variation, Levant, Gaussian-process and delay-reconstruction (SSA/SOD) estimators, and a self-tuning state-space (Kalman/RTS) smoother that handles gaps, multirate and non-uniform sampling. Includes a benchmark on a Duffing free decay with exact ground truth. Developed at the Nonlinear Dynamics Laboratory, University of Rhode Island.",
+  "creators": [
+    {"name": "Chelidze, David", "affiliation": "University of Rhode Island", "orcid": "0000-0003-0655-1439"}
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": ["numerical differentiation", "numerical integration", "regularization", "Kalman smoother", "total variation", "vibration measurement"],
+  "related_identifiers": [
+    {"identifier": "https://github.com/nld-uri/kinematics-toolbox", "relation": "isSupplementTo", "scheme": "url"}
+  ]
+}
